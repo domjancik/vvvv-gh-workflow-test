@@ -1,4 +1,4 @@
-name: vvvv gamma export smoke test
+name: CI - vvvv gamma export smoke test (Windows)
 
 on:
   workflow_dispatch:

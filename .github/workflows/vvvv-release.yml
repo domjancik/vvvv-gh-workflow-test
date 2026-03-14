@@ -1,4 +1,4 @@
-name: vvvv gamma release
+name: Release - vvvv gamma export app (Windows)
 
 on:
   push:

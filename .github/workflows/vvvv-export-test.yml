@@ -1,0 +1,133 @@
+name: vvvv gamma export smoke test
+
+on:
+  workflow_dispatch:
+    inputs:
+      offline_url:
+        description: 'Optional TeamCity offline installer URL override'
+        required: false
+        type: string
+      patch_path:
+        description: 'Optional patch path override relative to repo root'
+        required: false
+        type: string
+  push:
+    branches: [main]
+
+jobs:
+  export:
+    runs-on: windows-latest
+    timeout-minutes: 30
+    env:
+      VVVV_OFFLINE_URL_DEFAULT: https://teamcity.vvvv.org/guestAuth/app/rest/builds/id:34891/artifacts/content/vvvv_gamma_2021.3.3_setup_offline.exe
+      VVVV_INSTALLER: ${{ github.workspace }}\vvvv_setup_offline.exe
+      EXPORT_DIR: ${{ github.workspace }}\dist
+      PATCH_PATH_DEFAULT: ${{ github.workspace }}\HelloGithub.vl
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Resolve inputs
+        id: resolve
+        shell: pwsh
+        run: |
+          $offlineUrl = '${{ inputs.offline_url }}'
+          if ([string]::IsNullOrWhiteSpace($offlineUrl)) {
+            $offlineUrl = $env:VVVV_OFFLINE_URL_DEFAULT
+          }
+
+          $patchInput = '${{ inputs.patch_path }}'
+          if ([string]::IsNullOrWhiteSpace($patchInput)) {
+            $patchPath = $env:PATCH_PATH_DEFAULT
+          }
+          else {
+            $patchPath = Join-Path $env:GITHUB_WORKSPACE $patchInput
+          }
+
+          if (-not (Test-Path $patchPath)) {
+            throw "Patch path does not exist: $patchPath"
+          }
+
+          "offline_url=$offlineUrl" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+          "patch_path=$patchPath" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+
+      - name: Download offline installer
+        shell: pwsh
+        run: |
+          $ProgressPreference = 'SilentlyContinue'
+          Invoke-WebRequest -Uri '${{ steps.resolve.outputs.offline_url }}' -OutFile $env:VVVV_INSTALLER
+          Get-Item $env:VVVV_INSTALLER | Format-List FullName,Length,LastWriteTime
+
+      - name: Install vvvv gamma silently
+        shell: pwsh
+        run: |
+          $p = Start-Process -FilePath $env:VVVV_INSTALLER -ArgumentList '/SP- /VERYSILENT /SUPPRESSMSGBOXES /NORESTART' -Wait -PassThru
+          if ($p.ExitCode -ne 0) {
+            throw "Installer failed with exit code $($p.ExitCode)"
+          }
+          Write-Host "Installer exit code: $($p.ExitCode)"
+
+      - name: Locate vvvvc.exe
+        id: locate
+        shell: pwsh
+        run: |
+          $candidates = @(
+            'C:\Program Files\vvvv\vvvv gamma\vvvvc.exe',
+            'C:\Program Files\vvvv\vvvv\vvvvc.exe',
+            'C:\Program Files\vvvv gamma\vvvvc.exe'
+          )
+
+          $found = $candidates | Where-Object { Test-Path $_ } | Select-Object -First 1
+          if (-not $found) {
+            $found = Get-ChildItem 'C:\Program Files' -Filter vvvvc.exe -Recurse -ErrorAction SilentlyContinue |
+              Select-Object -ExpandProperty FullName -First 1
+          }
+
+          if (-not $found) {
+            Write-Host 'Top-level Program Files listing:'
+            Get-ChildItem 'C:\Program Files' | Select-Object FullName
+            throw 'vvvvc.exe not found after install'
+          }
+
+          Write-Host "Found vvvvc.exe at: $found"
+          Write-Host 'Install root listing:'
+          Get-ChildItem (Split-Path -Parent $found) | Select-Object Name,Length,Mode
+          "vvvvc=$found" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+
+      - name: Export minimal app
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path $env:EXPORT_DIR | Out-Null
+
+          $vvvvc = '${{ steps.locate.outputs.vvvvc }}'
+          $patch = '${{ steps.resolve.outputs.patch_path }}'
+
+          $common = @(
+            '--verbose', 'Information',
+            '--output-directory', $env:EXPORT_DIR,
+            '--output-type', 'WinExe',
+            '--rid', 'win-x64',
+            '--clean', 'true'
+          )
+
+          & $vvvvc @common $patch
+          if ($LASTEXITCODE -ne 0) {
+            Write-Host 'First attempt failed; retrying with patch path first to validate CLI argument order.'
+            & $vvvvc $patch @common
+          }
+
+          if ($LASTEXITCODE -ne 0) {
+            throw "vvvvc export failed with exit code $LASTEXITCODE"
+          }
+
+      - name: Show export directory
+        shell: pwsh
+        run: |
+          Get-ChildItem $env:EXPORT_DIR -Recurse | Select-Object FullName,Length
+
+      - name: Upload export artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: vvvv-export
+          path: dist

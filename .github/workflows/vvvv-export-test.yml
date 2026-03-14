@@ -82,6 +82,7 @@ jobs:
         shell: pwsh
         run: |
           $candidates = @(
+            'C:\Program Files\vvvv\vvvv_gamma_7.0-win-x64\vvvvc.exe',
             'C:\Program Files\vvvv\vvvv gamma\vvvvc.exe',
             'C:\Program Files\vvvv\vvvv\vvvvc.exe',
             'C:\Program Files\vvvv gamma\vvvvc.exe',
@@ -89,6 +90,12 @@ jobs:
             'C:\Program Files (x86)\vvvv\vvvv\vvvvc.exe',
             'C:\Program Files (x86)\vvvv gamma\vvvvc.exe'
           )
+
+          if (Test-Path 'C:\Program Files\vvvv') {
+            $candidates += Get-ChildItem 'C:\Program Files\vvvv' -Directory -ErrorAction SilentlyContinue |
+              Where-Object { $_.Name -like 'vvvv_gamma_*' } |
+              ForEach-Object { Join-Path $_.FullName 'vvvvc.exe' }
+          }
 
           $found = $candidates | Where-Object { Test-Path $_ } | Select-Object -First 1
           if (-not $found) {

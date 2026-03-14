@@ -47,8 +47,21 @@ jobs:
         id: locate
         shell: pwsh
         run: |
-          $found = Get-ChildItem 'C:\Program Files' -Filter vvvvc.exe -File -Recurse -ErrorAction SilentlyContinue |
-            Select-Object -ExpandProperty FullName -First 1
+          $candidates = @(
+            'C:\Program Files\vvvv\vvvv_gamma_7.0-win-x64\vvvvc.exe',
+            'C:\Program Files\vvvv\vvvv gamma\vvvvc.exe'
+          )
+          if (Test-Path 'C:\Program Files\vvvv') {
+            $candidates += Get-ChildItem 'C:\Program Files\vvvv' -Directory -ErrorAction SilentlyContinue |
+              Where-Object { $_.Name -like 'vvvv_gamma_*' } |
+              ForEach-Object { Join-Path $_.FullName 'vvvvc.exe' }
+          }
+
+          $found = $candidates | Where-Object { Test-Path $_ } | Select-Object -First 1
+          if (-not $found) {
+            $found = Get-ChildItem 'C:\Program Files' -Filter vvvvc.exe -File -Recurse -ErrorAction SilentlyContinue |
+              Select-Object -ExpandProperty FullName -First 1
+          }
           if (-not $found) {
             throw 'vvvvc.exe not found after install'
           }

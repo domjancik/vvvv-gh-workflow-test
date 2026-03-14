@@ -1,0 +1,72 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Document xmlns:p="property" xmlns:r="reflection" Id="M8vOC832wwjLPRTvYTarHX" LanguageVersion="2025.7.0" Version="0.128">
+  <NugetDependency Id="M7bdxMSlb0LONlcvuC1pC8" Location="VL.CoreLib" Version="2025.7.0" />
+  <Patch Id="RW7IgqQo71FMRZhzESxFKD">
+    <Canvas Id="Mby1J4NnN0qM0utKfrLD9c" DefaultCategory="Main" BordersChecked="false" CanvasType="FullCategory" />
+    <!--
+
+    ************************ Application ************************
+
+-->
+    <Node Name="Application" Bounds="100,100" Id="JSssaZxNE6kOcQgBfFYOnL">
+      <p:NodeReference>
+        <Choice Kind="ContainerDefinition" Name="Process" />
+        <CategoryReference Kind="Category" Name="Primitive" />
+      </p:NodeReference>
+      <Patch Id="L79jKCrWX6YLWIkZXCVq2O">
+        <Canvas Id="J6K56ueIksvO9hVx53mslY" CanvasType="Group">
+          <Node Bounds="178,121,145,19" Id="IsUjtuokQ0PNLMXCK2hmVy">
+            <p:NodeReference LastCategoryFullName="Graphics.Skia" LastDependency="VL.Skia.vl">
+              <Choice Kind="NodeFlag" Name="Node" Fixed="true" />
+              <Choice Kind="ProcessAppFlag" Name="Renderer" />
+            </p:NodeReference>
+            <Pin Id="Fg1RCNM5kBgPh6nbYVSipm" Name="Node Context" Kind="InputPin" IsHidden="true" />
+            <Pin Id="HSTCr2kIM2JPVYAy6c6lar" Name="Bounds" Kind="InputPin" DefaultValue="584, 260, 764, 537" IsHidden="true" />
+            <Pin Id="RsDDEH9EDo4M6sPufPXv9D" Name="Save Bounds" Kind="InputPin" IsHidden="true" />
+            <Pin Id="ByFRokVECY7OMRUv3v20Lb" Name="Bound to Document" Kind="InputPin" IsHidden="true" />
+            <Pin Id="DTG73GnRv2VLMovxfl8rfq" Name="Dialog If Document Changed" Kind="InputPin" IsHidden="true" />
+            <Pin Id="TwEaQs6lv4BOjU37woA2J7" Name="Always On Top" Kind="InputPin" IsHidden="true" />
+            <Pin Id="JzGuwwUqJqOOxF0rafeXK4" Name="Extend Into Title Bar" Kind="InputPin" IsHidden="true" />
+            <Pin Id="TseaiU0zNm4L4Tlj9tp3X2" Name="Input" Kind="InputPin" />
+            <Pin Id="DGTWSY4VQsMP1Sxgo7HjqY" Name="Title" Kind="InputPin" />
+            <Pin Id="JWAL0lxkzfjQa8WPt0NjfC" Name="Color" Kind="InputPin" />
+            <Pin Id="TK1a7QbNL17MyTzCmsjj3s" Name="Clear" Kind="InputPin" />
+            <Pin Id="E9WGSnCv8APQWtnggrUFpG" Name="Space" Kind="InputPin" />
+            <Pin Id="O9SgBmKoBvAOwpRyh3yQ6U" Name="Show Cursor" Kind="InputPin" />
+            <Pin Id="Hxw4m4OIJIPLDGthHwKAow" Name="VSync" Kind="InputPin" />
+            <Pin Id="RYRq9bq7rtULRhsVH5cJH4" Name="Commands" Kind="InputPin" IsHidden="true" />
+            <Pin Id="BgGtEejlYliOpvB3FHGZra" Name="Enable Keyboard Shortcuts" Kind="InputPin" IsHidden="true" />
+            <Pin Id="TcOSYr5nDFRPByKsyQF7n3" Name="Enabled" Kind="InputPin" />
+            <Pin Id="K2kdVpslHDyN1ROzJ8BA8K" Name="Form Bounds Notifications" Kind="OutputPin" IsHidden="true" />
+            <Pin Id="HfkyiZIYE6QNX2WSUDRLPf" Name="Form" Kind="OutputPin" />
+            <Pin Id="UhvC9bxAT6FOfRdhxQAo16" Name="ClientBounds" Kind="OutputPin" />
+            <Pin Id="MUCCtA8E28FMUqmUbYVuyV" Name="Render Time" Kind="OutputPin" />
+          </Node>
+          <Node Bounds="178,80,105,19" Id="RRaqxRepwsrLwyt9idi3Wi">
+            <p:NodeReference LastCategoryFullName="Graphics.Skia.Layers.Text" LastDependency="VL.Skia.vl">
+              <Choice Kind="NodeFlag" Name="Node" Fixed="true" />
+              <Choice Kind="ProcessAppFlag" Name="Text" />
+            </p:NodeReference>
+            <Pin Id="TZs9EYMrdMLN9UjXASH9pc" Name="Node Context" Kind="InputPin" IsHidden="true" />
+            <Pin Id="DLuWnmDHtfZMB5bICp1MBD" Name="Position" Kind="InputPin" />
+            <Pin Id="TbIR9eFJXs2Pfx2GmvqFrM" Name="Size" Kind="InputPin" />
+            <Pin Id="DU4tjpVPooGNRoBjo8ZdoK" Name="Anchor" Kind="InputPin" />
+            <Pin Id="P3qjGMQbMBqL1ItAaTLg1q" Name="Text" Kind="InputPin" DefaultValue="Hello GitHub" />
+            <Pin Id="SG1g09Y6sGXPQbPUVMJnMS" Name="Paint" Kind="InputPin" />
+            <Pin Id="GZDHBpYFJp8L0g2EQjw5Wb" Name="Enabled" Kind="InputPin" />
+            <Pin Id="QXgF3QlyqjgNtDCRr4hYVC" Name="Output" Kind="OutputPin" />
+            <Pin Id="LlylqPCGvSYQOwyRdmvaAV" Name="Baseline Position" Kind="OutputPin" />
+          </Node>
+        </Canvas>
+        <Patch Id="Rjf50sf4mCBQPT6Wb3pZBN" Name="Create" />
+        <Patch Id="Lha8JIfF23VNtTgdYIRGo6" Name="Update" />
+        <ProcessDefinition Id="AbzduOz6HGTLdrJ32cUSPd">
+          <Fragment Id="IKBzgrh8QXrNIKVEa8VrhI" Patch="Rjf50sf4mCBQPT6Wb3pZBN" Enabled="true" />
+          <Fragment Id="G4nBSdqskt2NMLN5Ze6220" Patch="Lha8JIfF23VNtTgdYIRGo6" Enabled="true" />
+        </ProcessDefinition>
+        <Link Id="E1PLZonEX1BNr9Qei3ewPl" Ids="QXgF3QlyqjgNtDCRr4hYVC,TseaiU0zNm4L4Tlj9tp3X2" />
+      </Patch>
+    </Node>
+  </Patch>
+  <NugetDependency Id="CJ8uAqiXDhULiOkr3AHMYR" Location="VL.Skia" Version="2025.7.0" />
+</Document>

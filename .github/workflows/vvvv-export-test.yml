@@ -129,7 +129,7 @@ jobs:
           $patch = '${{ steps.resolve.outputs.patch_path }}'
 
           $common = @(
-            '--verbose', 'Information',
+            '--verbosity', 'Information',
             '--output-directory', $env:EXPORT_DIR,
             '--output-type', 'WinExe',
             '--rid', 'win-x64',

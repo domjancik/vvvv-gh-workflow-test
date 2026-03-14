@@ -75,18 +75,43 @@ jobs:
           $candidates = @(
             'C:\Program Files\vvvv\vvvv gamma\vvvvc.exe',
             'C:\Program Files\vvvv\vvvv\vvvvc.exe',
-            'C:\Program Files\vvvv gamma\vvvvc.exe'
+            'C:\Program Files\vvvv gamma\vvvvc.exe',
+            'C:\Program Files (x86)\vvvv\vvvv gamma\vvvvc.exe',
+            'C:\Program Files (x86)\vvvv\vvvv\vvvvc.exe',
+            'C:\Program Files (x86)\vvvv gamma\vvvvc.exe'
           )
 
           $found = $candidates | Where-Object { Test-Path $_ } | Select-Object -First 1
           if (-not $found) {
-            $found = Get-ChildItem 'C:\Program Files' -Filter vvvvc.exe -Recurse -ErrorAction SilentlyContinue |
-              Select-Object -ExpandProperty FullName -First 1
+            $searchRoots = @(
+              'C:\Program Files',
+              'C:\Program Files (x86)',
+              "$env:LOCALAPPDATA\Programs"
+            ) | Where-Object { Test-Path $_ }
+
+            foreach ($root in $searchRoots) {
+              $found = Get-ChildItem $root -Filter vvvvc.exe -File -Recurse -ErrorAction SilentlyContinue |
+                Select-Object -ExpandProperty FullName -First 1
+              if ($found) { break }
+            }
           }
 
           if (-not $found) {
             Write-Host 'Top-level Program Files listing:'
             Get-ChildItem 'C:\Program Files' | Select-Object FullName
+            if (Test-Path 'C:\Program Files (x86)') {
+              Write-Host 'Top-level Program Files (x86) listing:'
+              Get-ChildItem 'C:\Program Files (x86)' | Select-Object FullName
+            }
+
+            Write-Host 'Folders matching *vvvv* under common roots:'
+            foreach ($root in @('C:\Program Files', 'C:\Program Files (x86)', "$env:LOCALAPPDATA\Programs")) {
+              if (Test-Path $root) {
+                Get-ChildItem $root -Directory -Recurse -ErrorAction SilentlyContinue |
+                  Where-Object { $_.FullName -match 'vvvv' } |
+                  Select-Object -First 20 -ExpandProperty FullName
+              }
+            }
             throw 'vvvvc.exe not found after install'
           }
 

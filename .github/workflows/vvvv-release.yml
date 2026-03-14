@@ -1,0 +1,127 @@
+name: vvvv gamma release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag to release (optional for manual runs)'
+        required: false
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-release:
+    runs-on: windows-latest
+    timeout-minutes: 45
+    env:
+      VVVV_OFFLINE_URL: https://teamcity.vvvv.org/guestAuth/app/rest/builds/id:39385/artifacts/content/vvvv_gamma_7.0-win-x64_setup_offline.exe
+      VVVV_INSTALLER: ${{ github.workspace }}\vvvv_setup_offline.exe
+      EXPORT_DIR: ${{ github.workspace }}\dist
+      PATCH_PATH: ${{ github.workspace }}\HelloGithub.vl
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Download offline installer
+        shell: pwsh
+        run: |
+          $ProgressPreference = 'SilentlyContinue'
+          Invoke-WebRequest -Uri $env:VVVV_OFFLINE_URL -OutFile $env:VVVV_INSTALLER
+          Get-Item $env:VVVV_INSTALLER | Format-List FullName,Length,LastWriteTime
+
+      - name: Install vvvv gamma silently
+        shell: pwsh
+        run: |
+          $p = Start-Process -FilePath $env:VVVV_INSTALLER -ArgumentList '/SP- /VERYSILENT /SUPPRESSMSGBOXES /NORESTART' -Wait -PassThru
+          if ($p.ExitCode -ne 0) {
+            throw "Installer failed with exit code $($p.ExitCode)"
+          }
+
+      - name: Locate vvvvc.exe
+        id: locate
+        shell: pwsh
+        run: |
+          $found = Get-ChildItem 'C:\Program Files' -Filter vvvvc.exe -File -Recurse -ErrorAction SilentlyContinue |
+            Select-Object -ExpandProperty FullName -First 1
+          if (-not $found) {
+            throw 'vvvvc.exe not found after install'
+          }
+          "vvvvc=$found" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+
+      - name: Export app
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path $env:EXPORT_DIR | Out-Null
+
+          $vvvvc = '${{ steps.locate.outputs.vvvvc }}'
+          $args = @(
+            "$env:PATCH_PATH",
+            '--verbosity', 'Information',
+            '--output-directory', "$env:EXPORT_DIR",
+            '--output-type', 'WinExe',
+            '--rid', 'win-x64',
+            '--clean', 'true'
+          )
+          & $vvvvc @args
+
+          if ($LASTEXITCODE -ne 0) {
+            throw "vvvvc export failed with exit code $LASTEXITCODE"
+          }
+
+      - name: Remove build-only src folder
+        shell: pwsh
+        run: |
+          $srcPath = Join-Path $env:EXPORT_DIR 'src'
+          if (Test-Path $srcPath) {
+            Remove-Item -LiteralPath $srcPath -Recurse -Force
+          }
+
+      - name: Package release zip
+        id: package
+        shell: pwsh
+        run: |
+          $tag = '${{ github.ref_name }}'
+          if ('${{ github.event_name }}' -eq 'workflow_dispatch' -and -not [string]::IsNullOrWhiteSpace('${{ inputs.tag }}')) {
+            $tag = '${{ inputs.tag }}'
+          }
+
+          if ([string]::IsNullOrWhiteSpace($tag)) {
+            throw 'Could not resolve tag name for release.'
+          }
+
+          $zip = Join-Path $env:GITHUB_WORKSPACE "vvvv-export-$tag.zip"
+          if (Test-Path $zip) { Remove-Item -LiteralPath $zip -Force }
+          Compress-Archive -Path (Join-Path $env:EXPORT_DIR '*') -DestinationPath $zip
+
+          "tag=$tag" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+          "zip=$zip" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+
+      - name: Create or update GitHub release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $tag = '${{ steps.package.outputs.tag }}'
+          $zip = '${{ steps.package.outputs.zip }}'
+
+          $exists = gh release view $tag --repo $env:GITHUB_REPOSITORY 2>$null
+          if ($LASTEXITCODE -eq 0) {
+            gh release upload $tag $zip --repo $env:GITHUB_REPOSITORY --clobber
+          }
+          else {
+            gh release create $tag $zip --repo $env:GITHUB_REPOSITORY --title $tag --generate-notes
+          }
+
+      - name: Upload release build artifact (CI)
+        uses: actions/upload-artifact@v6
+        with:
+          name: vvvv-export-release
+          path: |
+            dist/**
+            !dist/src/**

@@ -26,7 +26,7 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Resolve inputs
         id: resolve
@@ -53,20 +53,29 @@ jobs:
           "patch_path=$patchPath" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
 
       - name: Download offline installer
+        id: download
         shell: pwsh
         run: |
           $ProgressPreference = 'SilentlyContinue'
-          Invoke-WebRequest -Uri '${{ steps.resolve.outputs.offline_url }}' -OutFile $env:VVVV_INSTALLER
+          $duration = (Measure-Command {
+            Invoke-WebRequest -Uri '${{ steps.resolve.outputs.offline_url }}' -OutFile $env:VVVV_INSTALLER
+          }).TotalSeconds
           Get-Item $env:VVVV_INSTALLER | Format-List FullName,Length,LastWriteTime
+          "seconds=$([math]::Round($duration, 2))" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
 
       - name: Install vvvv gamma silently
+        id: install
         shell: pwsh
         run: |
-          $p = Start-Process -FilePath $env:VVVV_INSTALLER -ArgumentList '/SP- /VERYSILENT /SUPPRESSMSGBOXES /NORESTART' -Wait -PassThru
+          $duration = (Measure-Command {
+            $script:p = Start-Process -FilePath $env:VVVV_INSTALLER -ArgumentList '/SP- /VERYSILENT /SUPPRESSMSGBOXES /NORESTART' -Wait -PassThru
+          }).TotalSeconds
+          $p = $script:p
           if ($p.ExitCode -ne 0) {
             throw "Installer failed with exit code $($p.ExitCode)"
           }
           Write-Host "Installer exit code: $($p.ExitCode)"
+          "seconds=$([math]::Round($duration, 2))" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
 
       - name: Locate vvvvc.exe
         id: locate
@@ -152,7 +161,18 @@ jobs:
           Get-ChildItem $env:EXPORT_DIR -Recurse | Select-Object FullName,Length
 
       - name: Upload export artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: vvvv-export
-          path: dist
+          path: |
+            dist/**
+            !dist/src/**
+
+      - name: Timing summary
+        shell: pwsh
+        run: |
+          @"
+          ### vvvv CI timing
+          - Download installer: ${{ steps.download.outputs.seconds }}s
+          - Silent install: ${{ steps.install.outputs.seconds }}s
+          "@ | Out-File -FilePath $env:GITHUB_STEP_SUMMARY -Append -Encoding utf8
